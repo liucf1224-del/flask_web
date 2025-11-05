@@ -99,7 +99,7 @@
 ```
 
 ### 4. yolov8x_person_face.pt
-
+[下载链接-大于100m需要改git上传逻辑直接放到谷歌云盘](https://drive.google.com/file/d/1nH_CaDv7bTGbXR64NH9BMLtlvXOugcsk/view?usp=drive_link)
 ```
 检测类别: 专门用于检测两类目标：
 0: 'person' (人体)
