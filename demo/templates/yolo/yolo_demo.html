@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLOv8 目标检测演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #555;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #resultImage {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        .detection-result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .loading {
+            display: none;
+            margin: 10px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YOLOv8 目标检测演示</h1>
+        
+        <!-- 单张图片检测 -->
+        <div class="section">
+            <h2>单张图片目标检测</h2>
+            <form id="imageForm" enctype="multipart/form-data">
+                <input type="file" id="imageFile" name="image" accept="image/*" required>
+                <br>
+                <button type="submit" id="detectButton">检测图片</button>
+            </form>
+            
+            <div class="loading" id="imageLoading">
+                <div class="spinner"></div>
+                <p>正在处理中，请稍候...</p>
+            </div>
+            
+            <div id="imageResult"></div>
+        </div>
+        
+        <!-- 摄像头实时检测 -->
+        <div class="section">
+            <h2>摄像头实时检测</h2>
+            <button id="cameraButton">摄像头检测</button>
+            
+            <div class="loading" id="cameraLoading">
+                <div class="spinner"></div>
+                <p>正在处理中，请稍候...</p>
+            </div>
+            
+            <div id="cameraResult"></div>
+        </div>
+        
+        <!-- 安全帽检测 -->
+        <div class="section">
+            <h2>安全帽检测</h2>
+            <form id="helmetForm" enctype="multipart/form-data">
+                <input type="file" id="helmetFile" name="image" accept="image/*" required>
+                <br>
+                <button type="submit" id="helmetButton">检测安全帽</button>
+            </form>
+            
+            <div class="loading" id="helmetLoading">
+                <div class="spinner"></div>
+                <p>正在处理中，请稍候...</p>
+            </div>
+            
+            <div id="helmetResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // 图片检测表单提交
+        document.getElementById('imageForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('imageFile');
+            const loading = document.getElementById('imageLoading');
+            const resultDiv = document.getElementById('imageResult');
+            const button = document.getElementById('detectButton');
+            
+            if (!fileInput.files[0]) {
+                alert('请选择一张图片');
+                return;
+            }
+            
+            // 显示加载状态
+            loading.style.display = 'block';
+            button.disabled = true;
+            resultDiv.innerHTML = '';
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            // 发送请求
+            fetch('/yolo/detect_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                button.disabled = false;
+                
+                if (data.code === 0) {
+                    // 显示结果图片
+                    let resultHTML = `<h3>检测结果:</h3>`;
+                    resultHTML += `<img id="resultImage" src="/${data.image_path}" alt="检测结果">`;
+                    
+                    // 显示检测信息
+                    if (data.detections && data.detections.length > 0) {
+                        resultHTML += `<div class="detection-result"><h4>检测到的目标:</h4><ul>`;
+                        data.detections.forEach(detection => {
+                            resultHTML += `<li>${detection.class} (置信度: ${(detection.confidence * 100).toFixed(2)}%)</li>`;
+                        });
+                        resultHTML += `</ul></div>`;
+                    } else {
+                        resultHTML += `<div class="detection-result"><p>未检测到目标</p></div>`;
+                    }
+                    
+                    resultDiv.innerHTML = resultHTML;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">错误: ${data.message}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                button.disabled = false;
+                resultDiv.innerHTML = `<p style="color: red;">请求失败: ${error.message}</p>`;
+            });
+        });
+        
+        // 摄像头检测按钮点击事件
+        document.getElementById('cameraButton').addEventListener('click', function() {
+            const loading = document.getElementById('cameraLoading');
+            const resultDiv = document.getElementById('cameraResult');
+            const button = document.getElementById('cameraButton');
+            
+            // 显示加载状态
+            loading.style.display = 'block';
+            button.disabled = true;
+            resultDiv.innerHTML = '';
+            
+            // 发送请求
+            fetch('/yolo/detect_camera', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                button.disabled = false;
+                
+                if (data.code === 0) {
+                    // 显示结果图片
+                    let resultHTML = `<h3>摄像头检测结果:</h3>`;
+                    resultHTML += `<img id="resultImage" src="/${data.image_path}" alt="检测结果">`;
+                    
+                    // 显示检测信息
+                    if (data.detections && data.detections.length > 0) {
+                        resultHTML += `<div class="detection-result"><h4>检测到的目标:</h4><ul>`;
+                        data.detections.forEach(detection => {
+                            resultHTML += `<li>${detection.class} (置信度: ${(detection.confidence * 100).toFixed(2)}%)</li>`;
+                        });
+                        resultHTML += `</ul></div>`;
+                    } else {
+                        resultHTML += `<div class="detection-result"><p>未检测到目标</p></div>`;
+                    }
+                    
+                    resultDiv.innerHTML = resultHTML;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">错误: ${data.message}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                button.disabled = false;
+                resultDiv.innerHTML = `<p style="color: red;">请求失败: ${error.message}</p>`;
+            });
+        });
+        
+        // 安全帽检测表单提交
+        document.getElementById('helmetForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('helmetFile');
+            const loading = document.getElementById('helmetLoading');
+            const resultDiv = document.getElementById('helmetResult');
+            const button = document.getElementById('helmetButton');
+            
+            if (!fileInput.files[0]) {
+                alert('请选择一张图片');
+                return;
+            }
+            
+            // 显示加载状态
+            loading.style.display = 'block';
+            button.disabled = true;
+            resultDiv.innerHTML = '';
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            // 发送请求
+            fetch('/yolo/detect_safety_helmet', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                button.disabled = false;
+                
+                if (data.code === 0) {
+                    // 显示结果图片
+                    let resultHTML = `<h3>安全帽检测结果:</h3>`;
+                    resultHTML += `<img id="resultImage" src="/${data.image_path}" alt="检测结果">`;
+                    
+                    // 显示统计信息
+                    resultHTML += `<div class="detection-result"><h4>检测统计:</h4>`;
+                    resultHTML += `<p>检测到人员: ${data.person_count} 个</p>`;
+                    resultHTML += `<p>佩戴安全帽: ${data.helmet_count} 个</p>`;
+                    resultHTML += `</div>`;
+                    
+                    // 显示检测信息
+                    if (data.detections && data.detections.length > 0) {
+                        resultHTML += `<div class="detection-result"><h4>检测到的目标:</h4><ul>`;
+                        data.detections.forEach(detection => {
+                            resultHTML += `<li>${detection.class} (置信度: ${(detection.confidence * 100).toFixed(2)}%)</li>`;
+                        });
+                        resultHTML += `</ul></div>`;
+                    } else {
+                        resultHTML += `<div class="detection-result"><p>未检测到目标</p></div>`;
+                    }
+                    
+                    resultDiv.innerHTML = resultHTML;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">错误: ${data.message}</p>`;
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                button.disabled = false;
+                resultDiv.innerHTML = `<p style="color: red;">请求失败: ${error.message}</p>`;
+            });
+        });

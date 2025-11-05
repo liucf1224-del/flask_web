@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat - DeepSeek-R1</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg-light: #f9fafb;
+            --bg-dark: #1f2937;
+            --text-light: #374151;
+            --text-dark: #f3f4f6;
+            --user-bg: #dbeafe;
+            --assistant-bg: #e5e7eb;
+            --border-color: #e5e7eb;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+        }
+
+        .dark-theme {
+            --bg-light: #111827;
+            --bg-dark: #030712;
+            --text-light: #f3f4f6;
+            --text-dark: #d1d5db;
+            --user-bg: #1e3a8a;
+            --assistant-bg: #374151;
+            --border-color: #374151;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            transition: background-color 0.3s, color 0.3s;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--bg-light);
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .logo i {
+            font-size: 1.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            padding: 1rem;
+            overflow-y: auto;
+            transition: transform 0.3s;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .chat-history {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .history-item {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .history-item .actions {
+            display: none;
+            gap: 0.5rem;
+        }
+
+        .history-item:hover .actions {
+            display: flex;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .delete-btn:hover {
+            opacity: 1;
+        }
+
+        .new-chat-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 1.25rem;
+            border-radius: 1rem;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-bg);
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .assistant-message {
+            align-self: flex-start;
+            background-color: var(--assistant-bg);
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+
+        .message-content {
+            line-height: 1.6;
+        }
+
+        .message-content pre {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+        }
+
+        .message-content code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 0.25rem;
+            padding: 1rem 0;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .input-area {
+            padding: 1.5rem;
+            background: var(--bg-light);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 1rem 1.25rem;
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            resize: none;
+            min-height: 56px;
+            max-height: 200px;
+            outline: none;
+            background: var(--bg-light);
+            color: var(--text-light);
+            font-size: 1rem;
+            line-height: 1.5;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .send-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .send-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .info-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            background: var(--bg-dark);
+            color: var(--text-dark);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success-color);
+        }
+
+        .status-indicator.disconnected {
+            background: var(--error-color);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        .overlay.open {
+            display: block;
+        }
+
+          .chat-summary {
+              padding: 0.75rem 1.5rem;
+              background-color: var(--bg-light);
+              border-bottom: 1px solid var(--border-color);
+              font-size: 0.9rem;
+              color: var(--text-light);
+          }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <span>Ollama Chat</span>
+            </div>
+            <div class="controls">
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div class="sidebar" id="sidebar">
+                <div class="chat-history" id="historyList">
+                    <div class="history-item active">
+                        <span>新对话</span>
+                    </div>
+                    <!-- History items will be added here dynamically -->
+                </div>
+                <button class="new-chat-btn" id="newChatBtn">
+                    <i class="fas fa-plus"></i> 新对话
+                </button>
+            </div>
+
+            <div class="chat-area">
+
+                 <div class="chat-summary" id="summaryContainer">
+                      <!-- 对话摘要将动态插入到这里 -->
+                  </div>
+
+
+                <div class="messages" id="messagesContainer">
+                    <div class="message assistant-message">
+                        <div class="message-header">
+                            <i class="fas fa-robot"></i>
+                            <span>DeepSeek-R1</span>
+                        </div>
+                        <div class="message-content">
+                            <p>你好！我是DeepSeek-R1，有什么可以帮您的吗？</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="input-container">
+                        <textarea id="userInput" placeholder="输入消息..." rows="1"></textarea>
+                        <button class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+
+                     <div style="margin-top: 0.5rem; font-size: 0.85rem;">
+                        <span>当前 Token 使用量：<span id="tokenCount">0</span>/3500</span>
+                        <button style="float:right; background: var(--error-color); color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 0.5rem;" id="resetBtn">重置对话</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-bar">
+            <div class="status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span>已连接</span>
+            </div>
+            <div>模型: deepseek-r1:7b</div>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <script>
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+                    if (confirm('确定要重置对话吗？当前对话历史将被清除')) {
+                        currentHistory = [];
+                        messagesContainer.innerHTML = '';
+                        addMessage('assistant', '你好！我是DeepSeek-R1，有什么可以帮您的吗？');
+                        updateTokenCount();
+                        updateSummary();
+                    }
+                });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM elements
+            const themeToggle = document.getElementById('themeToggle');
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            const messagesContainer = document.getElementById('messagesContainer');
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const newChatBtn = document.getElementById('newChatBtn');
+            const historyList = document.getElementById('historyList');
+            const statusIndicator = document.getElementById('statusIndicator');
+
+            // State variables
+            let isDarkTheme = localStorage.getItem('theme') === 'dark';
+            let currentHistory = [];
+            let isWaitingForResponse = false;
+
+            // Initialize theme
+            updateTheme();
+
+            // Theme toggle
+            themeToggle.addEventListener('click', () => {
+                isDarkTheme = !isDarkTheme;
+                localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
+                updateTheme();
+            });
+
+            function updateTheme() {
+                document.body.classList.toggle('dark-theme', isDarkTheme);
+                themeToggle.innerHTML = isDarkTheme ?
+                    '<i class="fas fa-sun"></i>' :
+                    '<i class="fas fa-moon"></i>';
+            }
+
+            // Menu toggle for mobile
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('open');
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('open');
+            });
+
+            // Auto-resize textarea
+            userInput.addEventListener('input', () => {
+                userInput.style.height = 'auto';
+                userInput.style.height = (userInput.scrollHeight) + 'px';
+            });
+
+            // Send message on Enter (without Shift)
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (userInput.value.trim() && !isWaitingForResponse) {
+                        sendMessage();
+                    }
+                }
+            });
+
+            // Send button click
+            sendBtn.addEventListener('click', () => {
+                if (userInput.value.trim() && !isWaitingForResponse) {
+                    sendMessage();
+                }
+            });
+
+            // New chat button
+            newChatBtn.addEventListener('click', () => {
+                currentHistory = [];
+                messagesContainer.innerHTML = '';
+                addMessage('assistant', '你好！我是DeepSeek-R1，有什么可以帮您的吗？');
+
+                // Clear active state from all history items
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // Add new active item
+                const newItem = createHistoryItem('新对话');
+                newItem.classList.add('active');
+                historyList.insertBefore(newItem, historyList.firstChild.nextSibling);
+            });
+
+            // Function to send message to backend
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+
+                // Add user message to UI
+                addMessage('user', message);
+
+                // Add to history
+                currentHistory.push({ role: "user", content: message });
+
+                // Trim history if it exceeds the limit (3500 tokens)
+                const MAX_TOKENS = 3500;
+
+                while (estimateTokens(currentHistory.map(h => h.content).join(' ')) > MAX_TOKENS) {
+                    currentHistory.shift(); // Remove oldest message
+                }
+
+                updateTokenCount();
+                updateSummary();
+
+
+
+
+
+                // Clear input
+                userInput.value = '';
+                userInput.style.height = 'auto';
+                userInput.focus();
+
+                // Show typing indicator
+                const typingElement = createTypingIndicator();
+                messagesContainer.appendChild(typingElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                // Disable input and button
+                isWaitingForResponse = true;
+                userInput.disabled = true;
+                sendBtn.disabled = true;
+
+                // Send to backend
+                fetch('/ollama/stream', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        history: currentHistory
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+
+                    // Update status indicator
+                    statusIndicator.classList.remove('disconnected');
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let assistantMessage = '';
+
+                    // Create assistant message container
+                    const messageElement = document.createElement('div');
+                    messageElement.className = 'message assistant-message';
+                    messageElement.innerHTML = `
+                        <div class="message-header">
+                            <i class="fas fa-robot"></i>
+                            <span>DeepSeek-R1</span>
+                        </div>
+                        <div class="message-content"></div>
+                    `;
+
+                    // Remove typing indicator
+                    messagesContainer.removeChild(typingElement);
+
+                    // Add assistant message container
+                    messagesContainer.appendChild(messageElement);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                    const contentElement = messageElement.querySelector('.message-content');
+
+                    function read() {
+                        return reader.read().then(({ value, done }) => {
+                            if (done) {
+                                // Add full message to history
+                                currentHistory.push({ role: "assistant", content: assistantMessage });
+
+                                // Re-enable input and button
+                                isWaitingForResponse = false;
+                                userInput.disabled = false;
+                                sendBtn.disabled = false;
+                                return;
+                            }
+
+                            // Process the streamed data
+                            const chunk = decoder.decode(value, { stream: true });
+
+                            // Simple parsing - in real app you'd need to parse the SSE format
+                            try {
+                                // This is a simplification - actual SSE format is "data: {...}"
+                                if (chunk.startsWith('data: ')) {
+                                    const jsonStr = chunk.substring(6).trim();
+                                    if (jsonStr) {
+                                        const data = JSON.parse(jsonStr);
+                                        if (data.message && data.message.content) {
+                                            assistantMessage += data.message.content;
+                                            contentElement.innerHTML = formatMessage(assistantMessage);
+                                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error parsing response:', e);
+                            }
+
+                            return read();
+                        });
+                    }
+
+                    return read();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    statusIndicator.classList.add('disconnected');
+
+                    // Remove typing indicator
+                    if (typingElement.parentNode) {
+                        messagesContainer.removeChild(typingElement);
+                    }
+
+                    // Show error message
+                    addMessage('assistant', `抱歉，处理您的请求时出错: ${error.message}`);
+
+                    // Re-enable input and button
+                    isWaitingForResponse = false;
+                    userInput.disabled = false;
+                    sendBtn.disabled = false;
+                });
+            }
+
+            // Function to add a message to the UI
+            function addMessage(role, content) {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${role}-message`;
+                messageElement.innerHTML = `
+                    <div class="message-header">
+                        <i class="fas ${role === 'user' ? 'fa-user' : 'fa-robot'}"></i>
+                        <span>${role === 'user' ? '您' : 'DeepSeek-R1'}</span>
+                    </div>
+                    <div class="message-content">${formatMessage(content)}</div>
+                `;
+
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            // Format message content (detect code blocks, etc.)
+            function formatMessage(content) {
+                // Simple code block detection (in real app you'd use a proper markdown parser)
+                let formatted = content;
+
+                // Replace code blocks
+                formatted = formatted.replace(/```([\s\S]*?)```/g, (match, code) => {
+                    return `<pre><code>${code.trim()}</code></pre>`;
+                });
+
+                // Replace inline code
+                formatted = formatted.replace(/`(.*?)`/g, '<code>$1</code>');
+
+                // Replace newlines with <br>
+                formatted = formatted.replace(/\n/g, '<br>');
+
+                return formatted;
+            }
+
+            // Create typing indicator
+            function createTypingIndicator() {
+                const typingElement = document.createElement('div');
+                typingElement.className = 'message assistant-message';
+                typingElement.innerHTML = `
+                    <div class="message-header">
+                        <i class="fas fa-robot"></i>
+                        <span>DeepSeek-R1</span>
+                    </div>
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                `;
+                return typingElement;
+            }
+
+            function updateSummary() {
+                const summaryContainer = document.getElementById('summaryContainer');
+                summaryContainer.innerHTML = '';
+
+                if (currentHistory.length === 0) return;
+
+                currentHistory.forEach((msg, index) => {
+                    const summaryItem = document.createElement('div');
+                    summaryItem.style.marginBottom = '0.5rem';
+                    summaryItem.innerHTML = `            <strong>${msg.role === 'user' ? '用户：' : '助手：'}</strong>
+                        ${msg.content.substring(0, 60)}${msg.content.length > 60 ? '...' : ''}        `;
+                    summaryContainer.appendChild(summaryItem);
+                });
+            }
+
+            function updateTokenCount() {
+                    let totalTokens = 0;
+                    currentHistory.forEach(msg => {
+                        totalTokens += estimateTokens(msg.content);
+                    });
+                    document.getElementById('tokenCount').textContent = totalTokens;
+                }
+
+            function estimateTokens(text) {
+                // 粗略估算：每 4 个中文字符 ≈ 1 token，英文字符按 1:1 计算
+                const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
+                const otherChars = text.replace(/[\u4e00-\u9fa5]/g, '').length;
+                return Math.ceil((chineseChars.length / 4) + otherChars);
+            }
+
+            // Create history item
+            function createHistoryItem(title) {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.innerHTML = `
+                    <span>${title}</span>
+                    <div class="actions">
+                        <button class="delete-btn">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+
+                // Add click handler
+                item.addEventListener('click', (e) => {
+                    if (!e.target.closest('.delete-btn')) {
+                        // Set as active
+                        document.querySelectorAll('.history-item').forEach(el => {
+                            el.classList.remove('active');
+                        });
+                        item.classList.add('active');
+
+                        // TODO: Load conversation history
+                    }
+                });
+
+                // Add delete handler
+                const deleteBtn = item.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (item.classList.contains('active')) {
+                        // Can't delete active conversation
+                        return;
+                    }
+                    item.remove();
+                });
+
+                return item;
+            }
+
+            // Initialize with sample history items
+            const sampleItems = [
+                'Python代码调试',
+                '机器学习问题',
+                '项目架构咨询',
+                '算法优化建议'
+            ];
+
+            sampleItems.forEach(title => {
+                historyList.appendChild(createHistoryItem(title));
+            });
+        });
+    </script>
+</body>
+</html>
