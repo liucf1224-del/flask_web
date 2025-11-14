@@ -5,3 +5,4 @@
    redis==6.2.0
    Flask-Mail==0.10.0
    Flask-JWT-Extended==4.7.1
+   requests==2.31.0

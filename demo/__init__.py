@@ -88,6 +88,10 @@ def create_app():
     from .routes.yolo_view_routes import yolo_view_bp
     app.register_blueprint(yolo_view_bp)
 
+    # 注册钉钉路由
+    from .routes.dingtalk_routes import dingtalk_bp
+    app.register_blueprint(dingtalk_bp)
+
     return app
 
 def get_app_instance():
