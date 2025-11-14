@@ -9,6 +9,7 @@
 │   │   ├── app.py                  # Flask应用初始化
 │   │   ├── auth_controller.py      # 认证相关控制器
 │   │   ├── copyright_controller.py # 版权相关控制器
+│   │   ├── dingtalk_controller.py  # 钉钉消息推送控制器
 │   │   ├── main.py                 # 主入口文件
 │   │   ├── ollama_controller.py    # Ollama AI相关控制器
 │   │   ├── user_controller.py      # 用户相关控制器
@@ -22,6 +23,7 @@
 │   │   ├── auth_routes.py          # 认证路由
 │   │   ├── celery_routes.py        # Celery任务路由
 │   │   ├── copyright_routes.py     # 版权路由
+│   │   ├── dingtalk_routes.py      # 钉钉消息推送路由
 │   │   ├── email_routes.py         # 邮件路由
 │   │   ├── ffmpeg_routes.py        # FFmpeg路由
 │   │   ├── redis_routes.py         # Redis路由
@@ -119,6 +121,23 @@ ArcFace: 旷视科技开发的高精度人脸识别算法，支持大规模人�
 InsightFace: 开源的人脸分析工具包，包含多种识别模型
 ```
 
+## 钉钉消息推送功能
+
+项目实现了将热点分析报告通过钉钉机器人推送到群聊的功能：
+
+### 主要特性
+- 支持将热点分析报告推送到钉钉群聊
+- 提供测试接口验证推送功能
+- 支持多种报告类型（当日汇总、增量更新等）
+- 格式化消息内容，便于阅读
+
+### 接口说明
+- `POST /dingtalk/send_report` - 发送热点分析报告到钉钉
+- `GET /dingtalk/test` - 测试钉钉消息发送
+
+### 环境配置
+需要在环境变量中配置 `DING_TALK`，值为钉钉机器人的Webhook URL。
+
 ---
 
 ## 环境配置说明
@@ -150,4 +169,5 @@ pipreqs . --encoding=utf8
 
 # 强制覆盖已存在的 requirements.txt
 pipreqs . --force --encoding=utf8
+```
 ```
