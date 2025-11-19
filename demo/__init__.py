@@ -47,55 +47,34 @@ def create_app():
 
     celery.Task = ContextTask
 
-    # 测试Redis连接
-    try:
-        redis_client.ping()
-        print("✅ Redis连接成功")
-    except redis.ConnectionError:
-        print("❌ Redis连接失败")
-
-    # 导入模型（确保在db初始化后导入）
-    # from . import models
-    # 导入视图
-    # from . import views
-
-    # 注册蓝图（如果有）
-    # from .views import bp
-    # app.register_blueprint(bp)
-
-    # 注册蓝图
-    from .controller.ollama_controller import ollama_bp
-    app.register_blueprint(ollama_bp)
-
-    # 已有蓝图注册保持不变
-    from .routes.user_routes import user_bp
-    app.register_blueprint(user_bp)
-    from .routes.redis_routes import redis_demo_bp
-    app.register_blueprint(redis_demo_bp)
-    from .routes.email_routes import email_bp
-    app.register_blueprint(email_bp)
-    from .routes.copyright_routes import copyright_bp
-    app.register_blueprint(copyright_bp)
+    # 注册蓝图 蓝图和对应的路由映入的名要相同 如果不同的话需要别名再二次使用
     from .routes.auth_routes import auth_bp
-    app.register_blueprint(auth_bp)
-    from .routes.celery_routes import bp
-    app.register_blueprint(bp)
-    from .routes.ffmpeg_routes import ffmpeg_bp
-    app.register_blueprint(ffmpeg_bp)
-    # 注册YOLO路由
-    from .routes.yolo_routes import yolo_bp
-    app.register_blueprint(yolo_bp)
-    from .routes.yolo_view_routes import yolo_view_bp
-    app.register_blueprint(yolo_view_bp)
-
-    # 注册钉钉路由
+    from .routes.user_routes import user_bp
+    from .routes.celery_routes import bp as celery_bp
+    from .routes.redis_routes import redis_demo_bp as redis_bp
+    from .routes.email_routes import email_bp
+    from .routes.copyright_routes import copyright_bp
     from .routes.dingtalk_routes import dingtalk_bp
+    from .routes.ffmpeg_routes import ffmpeg_bp
+    from .routes.yolo_routes import yolo_bp
+    from .routes.yolo_view_routes import yolo_view_bp
+    from .controller.yeepay_controller import yeepay_bp  # 新增支付路由
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(user_bp)
+    app.register_blueprint(celery_bp)
+    app.register_blueprint(redis_bp)
+    app.register_blueprint(email_bp)
+    app.register_blueprint(copyright_bp)
     app.register_blueprint(dingtalk_bp)
+    app.register_blueprint(ffmpeg_bp)
+    app.register_blueprint(yolo_bp)
+    app.register_blueprint(yolo_view_bp)
+    app.register_blueprint(yeepay_bp)  # 注册支付路由
 
     return app
 
 def get_app_instance():
-    """获取实际应用实例"""
+    """获取应用实例"""
+    global app_instance
     return app_instance
-
-

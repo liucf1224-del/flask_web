@@ -37,3 +37,18 @@ class Config:
     #jwt
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1小时过期时间
+
+    # 易宝支付配置
+    # 商户私钥
+    PRIMARY_KEY = os.getenv('PRIMARY_KEY')
+    
+    # 易宝公钥
+    PUBLIC_KEY = os.getenv('PUBLIC_KEY')
+    
+    # 商户账号
+    MERCHANT_NO = os.getenv('MERCHANT_NO')
+    
+    # 商户编号
+    MERCHANT_APP_KEY = os.getenv('MERCHANT_APP_KEY')
+
+    APP_ID=os.getenv('APP_ID')
