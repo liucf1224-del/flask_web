@@ -14,6 +14,7 @@
 │   │   ├── ollama_controller.py    # Ollama AI相关控制器
 │   │   ├── user_controller.py      # 用户相关控制器
 │   │   ├── video_controller.py     # 视频处理相关控制器
+│   │   ├── yeepay_controller.py    # 易宝支付控制器
 │   │   └── yolo_controller.py      # YOLO模型相关控制器
 │   ├── model/                      # 数据模型层
 │   │   ├── copyright.py            # 版权模型
@@ -38,6 +39,7 @@
 │   │   ├── email.py                # 邮件工具
 │   │   ├── redis_own.py            # Redis工具
 │   │   ├── respose_utils.py        # 响应工具
+│   │   ├── yeepay_client.py        # 易宝支付客户端
 │   │   └── test.py                 # 测试工具
 │   ├── templates/                  # 模板文件
 │   │   ├── ollama/
@@ -109,6 +111,28 @@
 模型配置: 基于YOLOv8x架构，输入图像尺寸为640×640
 ```
 
+## 易宝支付功能
+
+项目集成了易宝支付(Yeepay)功能，支持微信小程序支付流程：
+
+### 主要特性
+- 支持微信小程序支付
+- 支持支付订单查询
+- 支持发起退款请求
+
+### 接口说明
+- `POST /yeepay/pay` - 创建支付订单
+- `GET /yeepay/query/<order_id>` - 查询支付结果
+- `POST /yeepay/refund` - 发起退款
+
+### 环境配置
+需要在环境变量中配置以下易宝支付相关参数：
+- `PRIMARY_KEY` - 商户私钥
+- `PUBLIC_KEY` - 易宝公钥
+- `MERCHANT_NO` - 商户账号
+- `MERCHANT_APP_KEY` - 商户编号
+- `APP_ID` - 微信小程序/公众号appId
+
 ## 功能参考拓展
 
 人脸识别+对比这种
@@ -169,5 +193,4 @@ pipreqs . --encoding=utf8
 
 # 强制覆盖已存在的 requirements.txt
 pipreqs . --force --encoding=utf8
-```
 ```
